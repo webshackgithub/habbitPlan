@@ -8,20 +8,24 @@ import path from "path";
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
 const getPrisma = () => {
-  const dbUrl = process.env["DATABASE_URL"];
-  const authToken = process.env["TURSO_AUTH_TOKEN"];
+  // Bracket notation을 사용하여 빌드 타임의 정적 치환을 방어합니다.
+  const runtimeEnv = process.env;
+  const dbUrl = runtimeEnv["DATABASE_URL"];
+  const authToken = runtimeEnv["TURSO_AUTH_TOKEN"];
 
   // 1. Turso 모드 (운영 환경: 토큰이 존재하는 경우)
   if (authToken && authToken !== "undefined" && authToken !== "") {
+    const finalDbUrl = dbUrl || "libsql://default";
     const libsql = createLibSqlClient({
-      url: dbUrl || "libsql://default",
+      url: finalDbUrl,
       authToken: authToken,
     });
-    const adapter = new PrismaLibSql(libsql as any);
-    console.log("🌐 Running in Production Mode (Turso)");
     
-    // Prisma 7 Engine이 런타임에 DATABASE_URL을 참조할 수 있도록 설정 (Vercel 환경 대응)
-    if (dbUrl) process.env.DATABASE_URL = dbUrl;
+    // Prisma 7 Engine이 런타임에 DATABASE_URL을 참조할 수 있도록 실제 환경 변수를 강제로 덮어씌웁니다.
+    process.env.DATABASE_URL = finalDbUrl;
+    
+    const adapter = new PrismaLibSql(libsql as any);
+    console.log(`🌐 Running in Production Mode (Turso): ${finalDbUrl}`);
     
     return new PrismaClient({ adapter });
   }
@@ -34,7 +38,7 @@ const getPrisma = () => {
   process.env.DATABASE_URL = connectionString;
   
   const adapter = new PrismaBetterSqlite3({ url: connectionString });
-  console.log("🏠 Running in Local Mode (SQLite)");
+  console.log(`🏠 Running in Local Mode (SQLite): ${connectionString}`);
   return new PrismaClient({ adapter });
 };
 
