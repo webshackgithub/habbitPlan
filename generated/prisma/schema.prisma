@@ -1,0 +1,26 @@
+generator client {
+  provider        = "prisma-client-js"
+  output          = "../generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Habit {
+  id          Int          @id @default(autoincrement())
+  name        String
+  targetMonth String // 예: '2026-04'
+  createdAt   DateTime     @default(now())
+  completions Completion[]
+}
+
+model Completion {
+  habitId     Int
+  checkDate   DateTime
+  isCompleted Boolean  @default(false)
+  habit       Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  @@id([habitId, checkDate])
+}
