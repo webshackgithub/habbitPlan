@@ -17,7 +17,7 @@ const getPrisma = () => {
       url: dbUrl || "libsql://default",
       authToken: authToken,
     });
-    const adapter = new PrismaLibSql(libsql);
+    const adapter = new PrismaLibSql(libsql as any);
     console.log("🌐 Running in Production Mode (Turso)");
     
     // Prisma 7 Engine이 런타임에 DATABASE_URL을 참조할 수 있도록 설정 (Vercel 환경 대응)
