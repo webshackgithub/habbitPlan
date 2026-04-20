@@ -20,7 +20,7 @@ async function buildPrismaClient(): Promise<PrismaClient> {
     return new PrismaClient({ adapter });
   }
 
-  // 2. 로컬/개발 모드: better-sqlite3 lll
+  // 2. 로컬/개발 모드: better-sqlite3
   const { PrismaBetterSqlite3 } = await import("@prisma/adapter-better-sqlite3");
   const path = await import("path");
   const dbPath = path.resolve(process.cwd(), "dev.db");
