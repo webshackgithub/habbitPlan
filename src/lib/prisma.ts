@@ -1,13 +1,10 @@
-import "dotenv/config";
 import { PrismaClient } from "../../generated/prisma/client";
 import { PrismaLibSql } from "@prisma/adapter-libsql";
 import { createClient as createLibSqlClient } from "@libsql/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import path from "path";
 
 const globalForPrisma = global as unknown as { prisma?: PrismaClient };
 
-const getPrisma = () => {
+const getPrisma = async () => {
   // Bracket notation을 사용하여 빌드 타임의 정적 치환을 방어합니다.
   const runtimeEnv = process.env;
   const dbUrl = runtimeEnv["DATABASE_URL"];
@@ -31,6 +28,10 @@ const getPrisma = () => {
   }
 
   // 2. 로컬 모드 (개발 환경: 토큰이 없는 경우)
+  // 운영 환경에서 better-sqlite3가 로드되어 프로세스가 죽는 것을 방지하기 위해 동적 임포트를 사용합니다.
+  const { PrismaBetterSqlite3 } = await import("@prisma/adapter-better-sqlite3");
+  const path = await import("path");
+
   const dbPath = path.resolve(process.cwd(), "dev.db");
   const connectionString = dbUrl || `file:${dbPath}`;
   
@@ -42,6 +43,9 @@ const getPrisma = () => {
   return new PrismaClient({ adapter });
 };
 
-export const prisma = globalForPrisma.prisma || getPrisma();
+// getPrisma가 비동기로 변경됨에 따라, prisma 인스턴스 생성을 관리하는 방식을 조정할 필요가 있을 수 있으나
+// 여기서는 기본 골격을 유지합니다. 싱글톤 패턴 유지를 위해 즉시 실행하거나, 사용 시점에 await 하도록 유도합니다.
+// (참고: Server Action이나 API Route에서 사용 시 await prisma 처리가 필요할 수 있음)
+export const prisma = globalForPrisma.prisma || (await getPrisma());
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma;
